@@ -1,7 +1,7 @@
 import pytest
 
 from pydantic import ValidationError
-from src.models import Apartment
+from src.models import Apartment, Tenant
 
 
 def test_apartment_fields():
@@ -43,3 +43,44 @@ def test_apartment_from_dict():
     data['area_m2'] = "25m2" # Invalid field
     with pytest.raises(ValidationError):
         wrong_apartment = Apartment(**data)
+
+def test_tenant_fields():
+    tenant = Tenant(
+        name='Test Tenant',
+        apartment='apart-test',
+        room='test-room',
+        apartment_key='apart-test',
+        rent_pln=1500.0,
+        deposit_pln=3000.0,
+        date_agreement_from='2024-01-01',
+        date_agreement_to='2024-12-31'
+    )
+
+    assert tenant.name == 'Test Tenant'
+    assert tenant.apartment == 'apart-test'
+    assert tenant.room == 'test-room'
+    assert tenant.apartment == 'apart-test'
+    assert tenant.rent_pln == 1500.0
+    assert tenant.deposit_pln == 3000.0
+    assert tenant.date_agreement_from == '2024-01-01'
+    assert tenant.date_agreement_to == '2024-12-31'
+
+def test_tenant_from_dict():
+    data = {
+        "name": "Test Testowy",
+        "apartment": "test-apart",
+        "room": "test-room",
+        "rent_pln": 4324.0,
+        "deposit_pln": 12356.0,
+        "date_agreement_from": "2032-01-01",
+        "date_agreement_to": "2033-01-01"
+    }
+    tenant = Tenant(**data)
+    assert tenant.name == data["name"]
+    assert tenant.apartment == data["apartment"]
+    assert tenant.room == data["room"]
+    assert tenant.rent_pln == data["rent_pln"]
+
+    with pytest.raises(ValidationError):
+        data['rent_pln'] = "1500PLN" # Invalid field
+        wrong_tenant = Tenant(**data)
