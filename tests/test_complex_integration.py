@@ -1,8 +1,5 @@
-
-
 from src.manager import Manager
-from src.models import Parameters
-from src.models import Bill
+from src.models import Parameters, Bill, ApartmentSettlement, TenantSettlement
 
 
 def test_apartment_costs_with_optional_parameters():
@@ -51,3 +48,76 @@ def test_apartment_costs_with_optional_parameters():
 
     costs = manager.get_apartment_costs('apart-polanka')
     assert costs == 3532.0
+
+
+def test_create_apartment_settlement():
+    manager = Manager(Parameters())
+    apartment_key = list(manager.apartments.keys())[0]
+
+    manager.bills.append(Bill(
+        apartment=apartment_key,
+        date_due='2024-01-10',
+        settlement_year=2024,
+        settlement_month=1,
+        amount_pln=100.0,
+        type='electricity'
+    ))
+
+    manager.bills.append(Bill(
+        apartment=apartment_key,
+        date_due='2024-01-15',
+        settlement_year=2024,
+        settlement_month=1,
+        amount_pln=200.0,
+        type='water'
+    ))
+
+    settlement = manager.create_apartment_settlement(apartment_key, 2024, 1)
+
+    assert isinstance(settlement, ApartmentSettlement)
+    assert settlement.total_bills_pln == 300.0
+    assert settlement.total_due_pln == 300.0
+
+    empty = manager.create_apartment_settlement(apartment_key, 2024, 5)
+    assert empty.total_bills_pln == 0.0
+
+
+def test_create_tenant_settlements():
+    manager = Manager(Parameters())
+
+    apartment_key = list(manager.apartments.keys())[0]
+
+    tenants = list(manager.tenants.values())
+    tenants[0].apartment = apartment_key
+    tenants[1].apartment = apartment_key
+
+    manager.bills.append(Bill(
+        apartment=apartment_key,
+        date_due='2024-01-10',
+        settlement_year=2024,
+        settlement_month=1,
+        amount_pln=200.0,
+        type='electricity'
+    ))
+
+    settlements = manager.create_tenant_settlements(apartment_key, 2024, 1)
+
+    assert isinstance(settlements, list)
+    assert len(settlements) >= 2
+
+    for s in settlements:
+        assert isinstance(s, TenantSettlement)
+        assert s.apartment_settlement == apartment_key
+        assert s.month == 1
+        assert s.year == 2024
+        assert s.bills_pln == 100.0
+        assert s.total_due_pln == 100.0
+
+    settlements_single = manager.create_tenant_settlements(apartment_key, 2024, 2)
+    assert isinstance(settlements_single, list)
+
+    for t in manager.tenants.values():
+        t.apartment = "other"
+
+    settlements_empty = manager.create_tenant_settlements(apartment_key, 2024, 1)
+    assert settlements_empty == []
